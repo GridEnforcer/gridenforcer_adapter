@@ -26,6 +26,15 @@ Example usage:
 """
 
 from .base import AdapterData, AdapterStatus, AdapterType, BaseAdapter
+from .controllable import ControllableAdapter, PowerCapabilities, PowerCommandResult
 
-__version__ = "0.1.0"
-__all__ = ["BaseAdapter", "AdapterData", "AdapterType", "AdapterStatus"]
+__version__ = "0.2.0"
+__all__ = [
+    "BaseAdapter",
+    "AdapterData",
+    "AdapterType",
+    "AdapterStatus",
+    "ControllableAdapter",
+    "PowerCapabilities",
+    "PowerCommandResult",
+]
