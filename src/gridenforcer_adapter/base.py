@@ -15,6 +15,7 @@ class AdapterType(Enum):
     CONSUMPTION = "consumption"
     STORAGE = "storage"
     WEATHER = "weather"
+    AGGREGATE = "aggregate"
     CUSTOM = "custom"
 
 
@@ -53,6 +54,8 @@ class BaseAdapter(ABC):
         self.config = config
         self._status = AdapterStatus.INITIALIZING
         self._last_error: str | None = None
+        self._parent_id: str | None = None
+        self._child_ids: list[str] = []
 
     @property
     @abstractmethod
@@ -73,6 +76,49 @@ class BaseAdapter(ABC):
     def last_error(self) -> str | None:
         """Return last error message if any."""
         return self._last_error
+
+    @property
+    def parent_id(self) -> str | None:
+        """Return parent adapter ID if this is a child adapter."""
+        return self._parent_id
+
+    @property
+    def child_ids(self) -> list[str]:
+        """Return list of child adapter IDs."""
+        return self._child_ids.copy()
+
+    @property
+    def is_parent(self) -> bool:
+        """Check if this adapter has children."""
+        return len(self._child_ids) > 0
+
+    @property
+    def is_child(self) -> bool:
+        """Check if this adapter has a parent."""
+        return self._parent_id is not None
+
+    def set_parent(self, parent_id: str) -> None:
+        """Set parent adapter ID."""
+        self._parent_id = parent_id
+
+    def add_child(self, child_id: str) -> None:
+        """Add a child adapter ID."""
+        if child_id not in self._child_ids:
+            self._child_ids.append(child_id)
+
+    def remove_child(self, child_id: str) -> None:
+        """Remove a child adapter ID."""
+        if child_id in self._child_ids:
+            self._child_ids.remove(child_id)
+
+    def get_hierarchy_info(self) -> dict[str, Any]:
+        """Get hierarchy information."""
+        return {
+            "parent_id": self._parent_id,
+            "child_ids": self._child_ids.copy(),
+            "is_parent": self.is_parent,
+            "is_child": self.is_child,
+        }
 
     @abstractmethod
     async def async_update(self) -> AdapterData:
