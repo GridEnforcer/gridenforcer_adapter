@@ -1,4 +1,11 @@
-"""Controllable adapter interface for devices that can receive power commands."""
+"""Controllable adapter interface for devices that can receive power commands.
+
+Naming conventions for power values:
+- rated_*: Hardware/spec limits (static, what device CAN do)
+- ems_*: Current EMS/system limits (dynamic, read from device)
+- target_*: Commanded/requested values (what we're asking for)
+- actual_*: Real-time measurements (what's actually happening)
+"""
 
 from abc import abstractmethod
 from dataclasses import dataclass
@@ -9,14 +16,24 @@ from .base import AdapterStatus, BaseAdapter
 
 @dataclass
 class PowerCapabilities:
-    """Power capabilities of a controllable adapter."""
+    """Power capabilities of a controllable adapter.
 
-    min_power_kw: float
-    max_power_kw: float
-    current_power_kw: float
+    Uses clear naming convention:
+    - rated_*: Hardware/spec limits (static)
+    - actual_*: Current measurements (dynamic)
+    """
+
+    # Rated/hardware limits for charging (static specs)
+    rated_min_charge_kw: float
+    rated_max_charge_kw: float
+
+    # Current actual power (real-time measurement)
+    actual_power_kw: float
+
+    # Discharge support
     supports_discharge: bool = False
-    min_discharge_power_kw: float = 0.0
-    max_discharge_power_kw: float = 0.0
+    rated_min_discharge_kw: float = 0.0
+    rated_max_discharge_kw: float = 0.0
 
 
 @dataclass
@@ -48,23 +65,28 @@ class ControllableAdapter(BaseAdapter):
         """Return current power capabilities.
 
         Returns:
-            PowerCapabilities with min/max power limits and current state
+            PowerCapabilities with rated limits and actual state
         """
 
     @property
-    def min_power_kw(self) -> float:
-        """Return minimum power in kW (convenience property)."""
-        return self.power_capabilities.min_power_kw
+    def rated_min_charge_kw(self) -> float:
+        """Return rated minimum charge power in kW."""
+        return self.power_capabilities.rated_min_charge_kw
 
     @property
-    def max_power_kw(self) -> float:
-        """Return maximum power in kW (convenience property)."""
-        return self.power_capabilities.max_power_kw
+    def rated_max_charge_kw(self) -> float:
+        """Return rated maximum charge power in kW."""
+        return self.power_capabilities.rated_max_charge_kw
 
     @property
-    def current_power_kw(self) -> float:
-        """Return current power in kW (convenience property)."""
-        return self.power_capabilities.current_power_kw
+    def actual_power_kw(self) -> float:
+        """Return actual current power in kW."""
+        return self.power_capabilities.actual_power_kw
+
+    @property
+    def rated_max_discharge_kw(self) -> float:
+        """Return rated maximum discharge power in kW."""
+        return self.power_capabilities.rated_max_discharge_kw
 
     @abstractmethod
     async def async_set_power(self, power_kw: float) -> PowerCommandResult:
@@ -95,7 +117,7 @@ class ControllableAdapter(BaseAdapter):
             power_kw: Requested power in kW
 
         Returns:
-            True if the power level is within capabilities
+            True if the power level is within rated capabilities
         """
         if self._status != AdapterStatus.READY:
             return False
@@ -104,10 +126,10 @@ class ControllableAdapter(BaseAdapter):
 
         if power_kw >= 0:
             # Charging/consumption
-            return caps.min_power_kw <= power_kw <= caps.max_power_kw
+            return caps.rated_min_charge_kw <= power_kw <= caps.rated_max_charge_kw
         else:
             # Discharging/production
             if not caps.supports_discharge:
                 return False
             abs_power = abs(power_kw)
-            return caps.min_discharge_power_kw <= abs_power <= caps.max_discharge_power_kw
+            return caps.rated_min_discharge_kw <= abs_power <= caps.rated_max_discharge_kw
