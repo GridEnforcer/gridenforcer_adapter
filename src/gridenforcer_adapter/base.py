@@ -198,7 +198,7 @@ class BaseAdapter(ABC):
         self._status = AdapterStatus.READY
         return True
 
-    async def async_teardown(self) -> None:
+    async def async_teardown(self) -> None:  # noqa: B027
         """Clean up adapter resources.
 
         Called when integration is unloaded.
