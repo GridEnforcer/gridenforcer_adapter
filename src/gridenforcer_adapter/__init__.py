@@ -26,7 +26,7 @@ Example usage:
 """
 
 from .aggregate import AggregateConstraintAdapter
-from .base import AdapterData, AdapterStatus, AdapterType, BaseAdapter
+from .base import AdapterData, AdapterStatus, AdapterType, BaseAdapter, DeviceClass, ValueType
 from .controllable import ControllableAdapter, PowerCapabilities, PowerCommandResult
 
 __version__ = "0.2.0"
@@ -35,8 +35,10 @@ __all__ = [
     "AdapterData",
     "AdapterType",
     "AdapterStatus",
+    "DeviceClass",
     "ControllableAdapter",
     "PowerCapabilities",
     "PowerCommandResult",
     "AggregateConstraintAdapter",
+    "ValueType",
 ]

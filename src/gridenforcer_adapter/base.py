@@ -14,9 +14,54 @@ class AdapterType(Enum):
     PRODUCTION = "production"
     CONSUMPTION = "consumption"
     STORAGE = "storage"
+    METER = "meter"
     WEATHER = "weather"
     AGGREGATE = "aggregate"
     CUSTOM = "custom"
+
+
+class DeviceClass(Enum):
+    """Device class for adapters — refines adapter_type.
+
+    Allows downstream code (UI entities, planning engines) to
+    distinguish between e.g. a home battery and an EV charger,
+    both of which are STORAGE adapters.
+    """
+
+    HOME_BATTERY = "home_battery"
+    EV_CHARGER = "ev_charger"
+    SOLAR_INVERTER = "solar_inverter"
+    GRID_METER = "grid_meter"
+    LOAD_METER = "load_meter"
+    GENERIC = "generic"
+
+
+class ValueType(Enum):
+    """Typed tags for measurements an adapter reports."""
+
+    # Power (instantaneous, kW)
+    POWER = "power"
+    GRID_POWER = "grid_power"
+    GRID_IMPORT_POWER = "grid_import_power"
+    GRID_EXPORT_POWER = "grid_export_power"
+    LOAD_POWER = "load_power"
+    BATTERY_POWER = "battery_power"
+    CHARGE_POWER = "charge_power"
+    DISCHARGE_POWER = "discharge_power"
+    # Energy (cumulative, kWh)
+    ENERGY_IMPORT = "energy_import"
+    ENERGY_EXPORT = "energy_export"
+    CAPACITY = "capacity"
+    # State (dimensionless)
+    SOC = "soc"
+    # Price
+    ENERGY_PRICE = "energy_price"
+    # Forecast (time series)
+    POWER_FORECAST = "power_forecast"
+    PRICE_FORECAST = "price_forecast"
+    # Limits (rated/configured, kW)
+    MAX_CHARGE_POWER = "max_charge_power"
+    MAX_DISCHARGE_POWER = "max_discharge_power"
 
 
 class AdapterStatus(Enum):
@@ -37,6 +82,7 @@ class AdapterData:
     unit: str | None
     timestamp: datetime
     attributes: dict[str, Any] | None = None
+    values: dict[ValueType, float | list[Any] | None] | None = None
 
 
 class BaseAdapter(ABC):
@@ -66,6 +112,15 @@ class BaseAdapter(ABC):
     @abstractmethod
     def name(self) -> str:
         """Return human-readable adapter name."""
+
+    @property
+    def device_class(self) -> DeviceClass:
+        """Return device class for this adapter.
+
+        Override in subclasses to provide a more specific class.
+        Default is GENERIC.
+        """
+        return DeviceClass.GENERIC
 
     @property
     def status(self) -> AdapterStatus:

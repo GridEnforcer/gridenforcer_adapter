@@ -4,7 +4,14 @@ from datetime import datetime
 
 import pytest
 
-from gridenforcer_adapter import AdapterData, AdapterStatus, AdapterType, BaseAdapter
+from gridenforcer_adapter import (
+    AdapterData,
+    AdapterStatus,
+    AdapterType,
+    BaseAdapter,
+    DeviceClass,
+    ValueType,
+)
 
 
 def test_adapter_type_enum():
@@ -13,8 +20,96 @@ def test_adapter_type_enum():
     assert AdapterType.PRODUCTION.value == "production"
     assert AdapterType.CONSUMPTION.value == "consumption"
     assert AdapterType.STORAGE.value == "storage"
+    assert AdapterType.METER.value == "meter"
     assert AdapterType.WEATHER.value == "weather"
     assert AdapterType.CUSTOM.value == "custom"
+
+
+def test_device_class_enum():
+    """Test that DeviceClass enum has expected values."""
+    assert DeviceClass.HOME_BATTERY.value == "home_battery"
+    assert DeviceClass.EV_CHARGER.value == "ev_charger"
+    assert DeviceClass.SOLAR_INVERTER.value == "solar_inverter"
+    assert DeviceClass.GRID_METER.value == "grid_meter"
+    assert DeviceClass.LOAD_METER.value == "load_meter"
+    assert DeviceClass.GENERIC.value == "generic"
+
+
+def test_value_type_enum():
+    """Test that ValueType enum has expected values."""
+    # Power
+    assert ValueType.POWER.value == "power"
+    assert ValueType.GRID_POWER.value == "grid_power"
+    assert ValueType.GRID_IMPORT_POWER.value == "grid_import_power"
+    assert ValueType.GRID_EXPORT_POWER.value == "grid_export_power"
+    assert ValueType.LOAD_POWER.value == "load_power"
+    assert ValueType.BATTERY_POWER.value == "battery_power"
+    assert ValueType.CHARGE_POWER.value == "charge_power"
+    assert ValueType.DISCHARGE_POWER.value == "discharge_power"
+    # Energy
+    assert ValueType.ENERGY_IMPORT.value == "energy_import"
+    assert ValueType.ENERGY_EXPORT.value == "energy_export"
+    assert ValueType.CAPACITY.value == "capacity"
+    # State
+    assert ValueType.SOC.value == "soc"
+    # Price
+    assert ValueType.ENERGY_PRICE.value == "energy_price"
+    # Forecast
+    assert ValueType.POWER_FORECAST.value == "power_forecast"
+    assert ValueType.PRICE_FORECAST.value == "price_forecast"
+    # Limits
+    assert ValueType.MAX_CHARGE_POWER.value == "max_charge_power"
+    assert ValueType.MAX_DISCHARGE_POWER.value == "max_discharge_power"
+
+
+def test_adapter_default_device_class():
+    """Test that BaseAdapter.device_class defaults to GENERIC."""
+
+    class TestAdapter(BaseAdapter):
+        @property
+        def adapter_type(self) -> AdapterType:
+            return AdapterType.STORAGE
+
+        @property
+        def name(self) -> str:
+            return "Test"
+
+        async def async_update(self) -> AdapterData:
+            return AdapterData(
+                value=0, unit=None, timestamp=datetime.now()
+            )
+
+    adapter = TestAdapter(
+        hass=None, entry_id="test", config={}  # type: ignore
+    )
+    assert adapter.device_class == DeviceClass.GENERIC
+
+
+def test_adapter_custom_device_class():
+    """Test that device_class can be overridden."""
+
+    class EVAdapter(BaseAdapter):
+        @property
+        def adapter_type(self) -> AdapterType:
+            return AdapterType.STORAGE
+
+        @property
+        def device_class(self) -> DeviceClass:
+            return DeviceClass.EV_CHARGER
+
+        @property
+        def name(self) -> str:
+            return "EV"
+
+        async def async_update(self) -> AdapterData:
+            return AdapterData(
+                value=0, unit=None, timestamp=datetime.now()
+            )
+
+    adapter = EVAdapter(
+        hass=None, entry_id="test", config={}  # type: ignore
+    )
+    assert adapter.device_class == DeviceClass.EV_CHARGER
 
 
 def test_adapter_status_enum():
@@ -54,6 +149,27 @@ def test_adapter_data_without_attributes():
     assert data.value == "active"
     assert data.unit is None
     assert data.attributes is None
+    assert data.values is None
+
+
+def test_adapter_data_with_values():
+    """Test AdapterData with typed values dict."""
+    now = datetime.now()
+    data = AdapterData(
+        value=5.0,
+        unit="kW",
+        timestamp=now,
+        values={
+            ValueType.GRID_POWER: 5.0,
+            ValueType.GRID_IMPORT_POWER: 5.0,
+            ValueType.GRID_EXPORT_POWER: 0.0,
+        },
+    )
+
+    assert data.values is not None
+    assert data.values[ValueType.GRID_POWER] == 5.0
+    assert data.values[ValueType.GRID_IMPORT_POWER] == 5.0
+    assert data.values[ValueType.GRID_EXPORT_POWER] == 0.0
 
 
 def test_base_adapter_is_abstract():
