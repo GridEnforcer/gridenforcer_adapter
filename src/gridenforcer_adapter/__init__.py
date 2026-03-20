@@ -28,6 +28,7 @@ Example usage:
 from .aggregate import AggregateConstraintAdapter
 from .base import AdapterData, AdapterStatus, AdapterType, BaseAdapter, DeviceClass, ValueType
 from .controllable import ControllableAdapter, PowerCapabilities, PowerCommandResult
+from .deferrable import DeferrableLoadAdapter
 
 __version__ = "0.2.0"
 __all__ = [
@@ -40,5 +41,6 @@ __all__ = [
     "PowerCapabilities",
     "PowerCommandResult",
     "AggregateConstraintAdapter",
+    "DeferrableLoadAdapter",
     "ValueType",
 ]

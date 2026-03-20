@@ -17,6 +17,7 @@ class AdapterType(Enum):
     METER = "meter"
     WEATHER = "weather"
     AGGREGATE = "aggregate"
+    DEFERRABLE = "deferrable"
     CUSTOM = "custom"
 
 
@@ -33,6 +34,7 @@ class DeviceClass(Enum):
     SOLAR_INVERTER = "solar_inverter"
     GRID_METER = "grid_meter"
     LOAD_METER = "load_meter"
+    HEAT_PUMP = "heat_pump"
     GENERIC = "generic"
 
 
