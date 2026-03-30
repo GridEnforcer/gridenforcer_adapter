@@ -1,23 +1,73 @@
 # GridEnforcer Adapter
 
-Shared adapter base classes for Home Assistant energy management integrations.
+Shared adapter base classes for the GridEnforcer energy management ecosystem.
 
 ## Overview
 
-This package provides a common interface for data source adapters used in Home Assistant energy management integrations. It defines abstract base classes that allow different integrations to share a consistent pattern for accessing:
+This package defines the common interface that all GridEnforcer device integrations implement. It provides abstract base classes, typed value enums, and data structures that enable GridEnforcer Core to communicate with any energy device through a uniform API.
 
-- Grid electricity prices
-- Solar/wind production data
-- Household consumption metrics
-- Battery storage state
-- Weather forecasts
-- Custom data sources
+## Adapter Types
+
+| AdapterType | Description |
+|-------------|-------------|
+| `GRID_PRICE` | Electricity grid prices and forecasts |
+| `PRODUCTION` | Energy production (solar, wind) |
+| `METER` | Power metering (grid meter, load meter) |
+| `STORAGE` | Battery storage and EV chargers |
+| `DEFERRABLE` | Deferrable/shiftable loads (heat pumps, water heaters) |
+| `AGGREGATE` | Aggregate constraint adapters (multi-device coordination) |
+
+## Device Classes
+
+| DeviceClass | Used with |
+|-------------|-----------|
+| `SOLAR_INVERTER` | PV production adapters |
+| `HOME_BATTERY` | Stationary battery storage |
+| `EV_CHARGER` | EV chargers (including V2G) |
+| `GRID_METER` | Grid import/export meters |
+| `LOAD_METER` | Household consumption meters |
+| `HEAT_PUMP` | Heat pump deferrable loads |
+| `GENERIC` | Default for unspecified devices |
+
+## Typed Values
+
+Adapters report data using `ValueType` enum keys in `AdapterData.values`:
+
+```python
+from gridenforcer_adapter import ValueType
+
+# Storage adapter example
+AdapterData(
+    values={
+        ValueType.SOC: 75.0,
+        ValueType.BATTERY_POWER: -3.5,  # kW, negative = discharging
+        ValueType.CAPACITY: 10.0,       # kWh
+    },
+    ...
+)
+```
+
+Common value types: `SOC`, `BATTERY_POWER`, `CAPACITY`, `POWER`, `GRID_POWER`, `GRID_IMPORT_POWER`, `GRID_EXPORT_POWER`, `LOAD_POWER`, `ENERGY_PRICE`, `PRICE_FORECAST`.
+
+## Base Classes
+
+### BaseAdapter
+
+Read-only adapter with lifecycle management (`async_setup`, `async_update`, `async_teardown`), status tracking, and typed value reporting.
+
+### ControllableAdapter
+
+Extends `BaseAdapter` with `async_set_power(power_kw)` for bidirectional power control and `PowerCapabilities` (rated/EMS limits, current power, SOC).
+
+### DeferrableLoadAdapter
+
+Extends `BaseAdapter` for shiftable loads. Provides `to_planning_dict()` for EMHASS integration with nominal power, duration, and time windows.
+
+### AggregateConstraintAdapter
+
+Parent adapter that coordinates multiple child adapters sharing a common constraint (e.g., shared inverter capacity).
 
 ## Installation
-
-### As a Git Dependency (Current)
-
-Add to your Home Assistant integration's `manifest.json`:
 
 ```json
 {
@@ -27,170 +77,45 @@ Add to your Home Assistant integration's `manifest.json`:
 }
 ```
 
-### From PyPI (Coming Soon)
-
-```bash
-pip install gridenforcer-adapter
-```
-
 ## Usage
 
-### Creating a Custom Adapter
-
 ```python
-from datetime import datetime
-from gridenforcer_adapter import BaseAdapter, AdapterData, AdapterType
+from gridenforcer_adapter import BaseAdapter, AdapterData, AdapterType, DeviceClass, ValueType
 
-class MyPriceAdapter(BaseAdapter):
-    """Adapter for fetching electricity prices."""
-
+class MyStorageAdapter(ControllableAdapter):
     @property
     def adapter_type(self) -> AdapterType:
-        return AdapterType.GRID_PRICE
+        return AdapterType.STORAGE
 
     @property
-    def name(self) -> str:
-        return "My Price Provider"
+    def device_class(self) -> DeviceClass:
+        return DeviceClass.HOME_BATTERY
 
     async def async_update(self) -> AdapterData:
-        """Fetch latest price data."""
-        # Fetch from your data source
-        price = await self._fetch_current_price()
-
         return AdapterData(
-            value=price,
-            unit="EUR/kWh",
+            values={ValueType.SOC: 80.0, ValueType.BATTERY_POWER: 2.0},
+            unit="kW",
             timestamp=datetime.now(),
-            attributes={
-                "provider": "my_provider",
-                "currency": "EUR",
-            }
         )
 
-    async def _fetch_current_price(self) -> float:
-        """Implement your data fetching logic here."""
-        # Example: query an API, read from HA entity, etc.
-        entity_id = self.config.get("price_entity_id")
-        state = self.hass.states.get(entity_id)
-        return float(state.state)
+    async def async_set_power(self, power_kw: float) -> None:
+        ...
 ```
-
-### Using the Adapter
-
-```python
-# In your Home Assistant integration
-from homeassistant.core import HomeAssistant
-
-adapter = MyPriceAdapter(
-    hass=hass,
-    entry_id="my_integration_entry",
-    config={
-        "price_entity_id": "sensor.electricity_price"
-    }
-)
-
-# Setup the adapter
-await adapter.async_setup()
-
-# Fetch data
-data = await adapter.async_update()
-print(f"Current price: {data.value} {data.unit}")
-```
-
-## Adapter Types
-
-The package includes predefined adapter types:
-
-- `GRID_PRICE`: Electricity grid prices
-- `PRODUCTION`: Energy production (solar, wind, etc.)
-- `CONSUMPTION`: Household energy consumption
-- `STORAGE`: Battery storage state
-- `WEATHER`: Weather forecasts
-- `CUSTOM`: Custom data sources
-
-## Adapter Lifecycle
-
-Adapters support a complete lifecycle:
-
-1. **Initialization**: `__init__(hass, entry_id, config)`
-2. **Setup**: `async_setup()` - Called once during initialization
-3. **Updates**: `async_update()` - Called periodically to fetch data
-4. **Teardown**: `async_teardown()` - Called when integration is unloaded
-
-## Adapter Status
-
-Adapters track their status through the `AdapterStatus` enum:
-
-- `INITIALIZING`: Adapter is being set up
-- `READY`: Adapter is ready to fetch data
-- `UPDATING`: Adapter is currently fetching data
-- `ERROR`: Adapter encountered an error
-- `DISABLED`: Adapter has been disabled
-
-Access via `adapter.status` property.
-
-## Configuration Validation
-
-Override `validate_config()` to add custom validation:
-
-```python
-def validate_config(self) -> bool:
-    """Validate that required config keys are present."""
-    return all(key in self.config for key in ["entity_id", "min_value", "max_value"])
-```
-
-## Example Implementations
-
-See the [GridEnforcer Core](https://github.com/GridEnforcer/gridenforcer_core) integration for complete examples of:
-
-- Battery storage adapter
-- Nordpool price adapter
-- Production/consumption adapters
-- Coordinator pattern for managing multiple adapters
 
 ## Development
 
-### Running Tests
-
 ```bash
-# Install dev dependencies
 pip install -e ".[dev]"
-
-# Run tests
 pytest tests/ -v
-
-# Run tests with coverage
-pytest tests/ --cov=gridenforcer_adapter --cov-report=html
-```
-
-### Code Quality
-
-```bash
-# Format code
-ruff format .
-
-# Lint
-ruff check .
-
-# Type check
+ruff check src/
 mypy src/
 ```
 
 ## Requirements
 
 - Python >= 3.12
-- No runtime dependencies (uses only Python standard library)
+- No runtime dependencies
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-Contributions are welcome! Please open an issue or pull request on GitHub.
-
-## Links
-
-- [GitHub Repository](https://github.com/GridEnforcer/gridenforcer_adapter)
-- [GridEnforcer Core Integration](https://github.com/GridEnforcer/gridenforcer_core)
-- [Home Assistant](https://www.home-assistant.io/)
+MIT
