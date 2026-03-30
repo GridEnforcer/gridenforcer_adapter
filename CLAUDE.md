@@ -17,3 +17,14 @@ docker inspect <container_name> --format '{{range .Mounts}}{{.Source}}{{"\n"}}{{
 ```
 
 If there are any failing tests or ruff errors, **stop and inform the user** before proceeding. Do not start new work on top of a broken baseline.
+
+## Definition of done
+
+A feature is complete when:
+
+1. The specified behavior works correctly across all described scenarios
+2. Edge cases identified in the specification are handled
+3. A corresponding unit test exists and passes
+4. No linting errors are introduced
+5. A oneline summary of the feature is added to CHANGELOG.md
+6. README.md and PRD.md is updated to reflect the changes and user approved the updates
