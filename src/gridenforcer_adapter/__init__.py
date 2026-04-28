@@ -27,8 +27,15 @@ Example usage:
 
 from .aggregate import AggregateConstraintAdapter
 from .base import AdapterData, AdapterStatus, AdapterType, BaseAdapter, DeviceClass, ValueType
-from .controllable import ControllableAdapter, PowerCapabilities, PowerCommandResult
+from .controllable import (
+    ControllableAdapter,
+    PowerCapabilities,
+    PowerCommandResult,
+    VerificationResult,
+    VerificationState,
+)
 from .deferrable import DeferrableLoadAdapter
+from .intent import BATTERY_DEADBAND_KW, GRID_DEADBAND_KW, IntentType
 
 __version__ = "0.2.0"
 __all__ = [
@@ -40,7 +47,12 @@ __all__ = [
     "ControllableAdapter",
     "PowerCapabilities",
     "PowerCommandResult",
+    "VerificationResult",
+    "VerificationState",
     "AggregateConstraintAdapter",
     "DeferrableLoadAdapter",
     "ValueType",
+    "IntentType",
+    "GRID_DEADBAND_KW",
+    "BATTERY_DEADBAND_KW",
 ]

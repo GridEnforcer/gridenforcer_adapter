@@ -10,8 +10,11 @@ Naming conventions for power values:
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Literal
 
 from .base import AdapterStatus, BaseAdapter
+
+VerificationState = Literal["verified", "mismatch", "no_data", "not_applicable"]
 
 
 @dataclass
@@ -47,12 +50,29 @@ class PowerCommandResult:
     error_message: str | None = None
 
 
+@dataclass
+class VerificationResult:
+    """Outcome of a deferred check that a prior power command took effect."""
+
+    state: VerificationState
+    requested_power_kw: float
+    actual_power_kw: float | None
+    delta_kw: float | None
+    checked_at: datetime
+    detail: str | None = None
+
+
 class ControllableAdapter(BaseAdapter):
     """Base class for adapters that can receive power control commands.
 
     Extends BaseAdapter with methods for setting power output/input.
     Used for devices like EV chargers, batteries, and other controllable loads.
     """
+
+    # Verification tunables — override in subclasses for slow or noisy devices.
+    verification_delay_seconds: float = 10.0
+    verification_tolerance_kw: float = 0.5
+    verification_max_failures: int = 3
 
     @property
     def is_controllable(self) -> bool:
@@ -89,7 +109,9 @@ class ControllableAdapter(BaseAdapter):
         return self.power_capabilities.rated_max_discharge_kw
 
     @abstractmethod
-    async def async_set_power(self, power_kw: float) -> PowerCommandResult:
+    async def async_set_power(
+        self, power_kw: float, *, force: bool = False
+    ) -> PowerCommandResult:
         """Set the target power for this device.
 
         Positive values indicate charging/consumption.
@@ -97,6 +119,10 @@ class ControllableAdapter(BaseAdapter):
 
         Args:
             power_kw: Target power in kW
+            force: If True, bypass adapter-level defensive preflight checks
+                (e.g. session-state guards) because the caller has explicit
+                user intent and accepts responsibility for the outcome.
+                Hardware-availability checks still apply.
 
         Returns:
             PowerCommandResult indicating success/failure and actual power set
@@ -109,6 +135,46 @@ class ControllableAdapter(BaseAdapter):
             PowerCommandResult indicating success/failure
         """
         return await self.async_set_power(0.0)
+
+    async def async_verify_last_command(
+        self, requested_power_kw: float
+    ) -> VerificationResult:
+        """Check whether the last commanded power has been reached.
+
+        Called by the execution engine after `verification_delay_seconds` has
+        elapsed since a successful `async_set_power`. The default compares
+        `power_capabilities.actual_power_kw` against the request with
+        `verification_tolerance_kw`; subclasses may override for
+        protocol-specific checks (e.g. also inspecting session state).
+
+        Args:
+            requested_power_kw: The power that was most recently commanded.
+
+        Returns:
+            VerificationResult describing the outcome.
+        """
+        caps = self.power_capabilities
+        actual = caps.actual_power_kw if caps is not None else None
+        checked_at = datetime.now()
+        if actual is None:
+            return VerificationResult(
+                state="no_data",
+                requested_power_kw=requested_power_kw,
+                actual_power_kw=None,
+                delta_kw=None,
+                checked_at=checked_at,
+            )
+        delta = abs(actual - requested_power_kw)
+        state: VerificationState = (
+            "verified" if delta <= self.verification_tolerance_kw else "mismatch"
+        )
+        return VerificationResult(
+            state=state,
+            requested_power_kw=requested_power_kw,
+            actual_power_kw=actual,
+            delta_kw=delta,
+            checked_at=checked_at,
+        )
 
     def can_accept_power(self, power_kw: float) -> bool:
         """Check if the device can accept the requested power level.
