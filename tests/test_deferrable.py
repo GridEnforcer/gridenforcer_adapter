@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from gridenforcer_adapter import AdapterType, DeviceClass, DeferrableLoadAdapter
+from gridenforcer_adapter import AdapterType, DeferrableLoadAdapter, DeviceClass
 
 
 @pytest.fixture
