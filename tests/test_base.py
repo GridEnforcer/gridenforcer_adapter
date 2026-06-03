@@ -85,6 +85,48 @@ def test_adapter_default_device_class():
     assert adapter.device_class == DeviceClass.GENERIC
 
 
+def test_adapter_default_is_forecast_only_false():
+    """is_forecast_only defaults to False; live adapters opt out by default."""
+
+    class LiveAdapter(BaseAdapter):
+        @property
+        def adapter_type(self) -> AdapterType:
+            return AdapterType.PRODUCTION
+
+        @property
+        def name(self) -> str:
+            return "Live PV"
+
+        async def async_update(self) -> AdapterData:
+            return AdapterData(value=0, unit=None, timestamp=datetime.now())
+
+    adapter = LiveAdapter(hass=None, entry_id="test", config={})  # type: ignore
+    assert adapter.is_forecast_only is False
+
+
+def test_adapter_is_forecast_only_can_be_overridden():
+    """Forecast adapters override is_forecast_only to True."""
+
+    class ForecastAdapter(BaseAdapter):
+        @property
+        def adapter_type(self) -> AdapterType:
+            return AdapterType.PRODUCTION
+
+        @property
+        def name(self) -> str:
+            return "PV Forecast"
+
+        @property
+        def is_forecast_only(self) -> bool:
+            return True
+
+        async def async_update(self) -> AdapterData:
+            return AdapterData(value=0, unit=None, timestamp=datetime.now())
+
+    adapter = ForecastAdapter(hass=None, entry_id="test", config={})  # type: ignore
+    assert adapter.is_forecast_only is True
+
+
 def test_adapter_custom_device_class():
     """Test that device_class can be overridden."""
 
@@ -262,6 +304,29 @@ async def test_adapter_lifecycle_methods():
 
     # Teardown should not raise
     await adapter.async_teardown()
+
+
+@pytest.mark.asyncio
+async def test_async_set_grid_export_limit_kw_default_is_no_op():
+    """BaseAdapter default returns False so adapters without an inverter
+    export-limit knob silently skip the runtime safety-net call.
+    gridenforcer_core-xcm."""
+
+    class TestAdapter(BaseAdapter):
+        @property
+        def adapter_type(self) -> AdapterType:
+            return AdapterType.CUSTOM
+
+        @property
+        def name(self) -> str:
+            return "Test"
+
+        async def async_update(self) -> AdapterData:
+            return AdapterData(value=0, unit=None, timestamp=datetime.now())
+
+    adapter = TestAdapter(hass=None, entry_id="test", config={})  # type: ignore
+    assert await adapter.async_set_grid_export_limit_kw(0.0) is False
+    assert await adapter.async_set_grid_export_limit_kw(10.0) is False
 
 
 def test_adapter_validate_config():

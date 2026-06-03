@@ -125,6 +125,18 @@ class BaseAdapter(ABC):
         return DeviceClass.GENERIC
 
     @property
+    def is_forecast_only(self) -> bool:
+        """Whether this adapter only provides forecasts (no live measurement).
+
+        Forecast-only adapters publish their forecast via attributes for the
+        planner but their `value` is not a real-time measurement and must not
+        be aggregated into the live system state (production / consumption /
+        grid). Override to True in adapters whose source sensor is a forecast
+        (e.g. PV forecast services, ML load forecasters).
+        """
+        return False
+
+    @property
     def status(self) -> AdapterStatus:
         """Return current adapter status."""
         return self._status
@@ -206,6 +218,31 @@ class BaseAdapter(ABC):
         Called when integration is unloaded.
         Override to perform cleanup.
         """
+
+    async def async_set_grid_export_limit_kw(self, limit_kw: float) -> bool:  # noqa: B027
+        """Set a runtime cap on power exported to the grid (kW).
+
+        The cap is plant-level — it gates the inverter's grid-out flow,
+        not a single battery. Adapters that surface this control (an
+        inverter / EMS knob like Sigen's ``grid_export_limitation``)
+        override this method and write the value. Adapters without the
+        capability return ``False``; the caller treats that as "this
+        adapter can't honor the request" and moves on.
+
+        Used as a runtime safety net to clamp grid export to 0 when the
+        live sell price goes ≤ 0 (gridenforcer_core-xcm). EMHASS already
+        plans around negative prices (sell-side floored at 0, PV
+        curtailment is an LP variable), so this is purely a defensive
+        check against reality drift.
+
+        Args:
+            limit_kw: Maximum grid-export power in kW. 0 = no export.
+
+        Returns:
+            True if the adapter accepted the cap, False if it lacks the
+            capability or the write failed.
+        """
+        return False
 
     def validate_config(self) -> bool:
         """Validate adapter configuration.
