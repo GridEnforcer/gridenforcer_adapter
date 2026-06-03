@@ -28,3 +28,5 @@ A feature is complete when:
 4. No linting errors are introduced
 5. A oneline summary of the feature is added to CHANGELOG.md
 6. README.md and PRD.md is updated to reflect the changes and user approved the updates
+7. The changes are tested in the running install and explicitly approved by the user before committing and pushing
+8. The associated Beads issue stays open until the user confirms the change works; only then close it

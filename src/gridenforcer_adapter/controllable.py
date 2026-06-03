@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import Literal
 
 from .base import AdapterStatus, BaseAdapter
+from .intent import IntentType
 
 VerificationState = Literal["verified", "mismatch", "no_data", "not_applicable"]
 
@@ -110,7 +111,11 @@ class ControllableAdapter(BaseAdapter):
 
     @abstractmethod
     async def async_set_power(
-        self, power_kw: float, *, force: bool = False
+        self,
+        power_kw: float,
+        *,
+        force: bool = False,
+        intent: IntentType | None = None,
     ) -> PowerCommandResult:
         """Set the target power for this device.
 
@@ -123,6 +128,14 @@ class ControllableAdapter(BaseAdapter):
                 (e.g. session-state guards) because the caller has explicit
                 user intent and accepts responsibility for the outcome.
                 Hardware-availability checks still apply.
+            intent: The planner's strategic intent for this command (e.g.
+                ``SELF_CONSUME``, ``GRID_CHARGE``, ``HOLD``). Adapters may
+                use this to choose protocol-specific behavior — for
+                example, a hybrid inverter could pick a different mode for
+                ``SELF_CONSUME`` vs ``GRID_CHARGE`` even when the kW
+                target is identical, or expose the intent on a status
+                sensor for downstream automations. Adapters that don't
+                care can ignore it.
 
         Returns:
             PowerCommandResult indicating success/failure and actual power set
@@ -134,7 +147,7 @@ class ControllableAdapter(BaseAdapter):
         Returns:
             PowerCommandResult indicating success/failure
         """
-        return await self.async_set_power(0.0)
+        return await self.async_set_power(0.0, intent=IntentType.HOLD)
 
     async def async_verify_last_command(
         self, requested_power_kw: float

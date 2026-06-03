@@ -55,6 +55,8 @@ Common value types: `SOC`, `BATTERY_POWER`, `CAPACITY`, `POWER`, `GRID_POWER`, `
 
 Read-only adapter with lifecycle management (`async_setup`, `async_update`, `async_teardown`), status tracking, and typed value reporting.
 
+Adapters that wrap a forecast sensor (PV forecast services, ML load forecasters) should override `is_forecast_only` to return `True`. GridEnforcer Core will then keep them out of live state aggregation while still reading their forecast attributes for planning.
+
 ### ControllableAdapter
 
 Extends `BaseAdapter` with `async_set_power(power_kw)` for bidirectional power control and `PowerCapabilities` (rated/EMS limits, current power, SOC).

@@ -18,6 +18,12 @@ Shared base classes and type system for all GridEnforcer device adapters — def
 - **When `values` is None**, the core falls back to `value` + `attributes` dict (legacy path).
 - **Both paths can coexist** — adapters may populate both for backwards compatibility.
 
+### Forecast-Only Adapters
+
+- **`is_forecast_only` defaults to False** — the adapter reports a real-time measurement and contributes to live state aggregation.
+- **When an adapter overrides `is_forecast_only` to True**, its `value` is a forecast (e.g. PV forecast service, ML load forecaster) and must not be summed into live production / consumption / grid totals. The planner still reads its forecast attributes.
+- **Forecast-only adapters remain queryable** for plan generation — they are excluded only from real-time aggregation, not from the registry or planner inputs.
+
 ### ControllableAdapter
 
 - **When `async_set_power(power_kw)` is called with positive value**, the device charges at that rate.
@@ -70,6 +76,7 @@ Shared base classes and type system for all GridEnforcer device adapters — def
 6. `to_planning_dict()` returns valid EMHASS-compatible parameters.
 7. PowerCommandResult accurately reports success/failure with timestamps.
 8. AdapterData supports both legacy (`value`/`attributes`) and typed (`values` dict) paths.
+9. `is_forecast_only` defaults to False; forecast-wrapping adapters override it to True so the core can exclude them from live aggregation.
 
 ## Edge Cases
 
