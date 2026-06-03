@@ -2,21 +2,31 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Development setup
+
+Local `uv` venv (no devcontainer):
+
+```bash
+uv venv
+uv pip install -e ".[dev]"
+```
+
+`.python-version` pins to 3.12 so `uv venv` picks the right interpreter automatically.
+
 ## Pre-Plan Baseline Check
 
 **Before starting any new plan or implementation task**, run unit tests and ruff to verify a clean baseline:
 
 ```bash
-docker exec <container_name> python3 -m pytest /workspaces/gridenforcer_adapter/tests/ --tb=no -q
-docker exec <container_name> ruff check /workspaces/gridenforcer_adapter/src/
-```
-
-The devcontainer name is typically `musing_leakey` (shared with gridenforcer_core). Verify with:
-```bash
-docker inspect <container_name> --format '{{range .Mounts}}{{.Source}}{{"\n"}}{{end}}' | grep gridenforcer_adapter
+uv run pytest tests/ --tb=no -q
+uv run ruff check src/
 ```
 
 If there are any failing tests or ruff errors, **stop and inform the user** before proceeding. Do not start new work on top of a broken baseline.
+
+## Branching
+
+When claiming a bead, create a feature branch off `main` (e.g. `bd-<id>/<short-slug>`) and do all work there. Merge to `main` via PR after field-green. Direct pushes to `main` are blocked by GitHub branch protection.
 
 ## Definition of done
 
