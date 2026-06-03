@@ -24,6 +24,8 @@ uv run ruff check src/
 
 If there are any failing tests or ruff errors, **stop and inform the user** before proceeding. Do not start new work on top of a broken baseline.
 
+Beads (issue tracking) live in the sibling repo `gridenforcer_planning` — clone it next to this repo and run `bd ready` / `bd create` / etc. from there. Bead IDs use the `ge-` prefix; historical CHANGELOG entries referencing `gridenforcer_core-<id>` map 1:1 to `ge-<id>`.
+
 ## Branching
 
 When claiming a bead, create a feature branch off `main` (e.g. `bd-<id>/<short-slug>`) and do all work there. Merge to `main` via PR after field-green. Direct pushes to `main` are blocked by GitHub branch protection.
