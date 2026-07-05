@@ -1,44 +1,41 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Project-specific guidance for Claude Code in this repo.
 
-## Development setup
+## Shared team workflow
 
-Local `uv` venv (no devcontainer):
+These rules apply to all GridEnforcer repos and are maintained in the sibling repo `gridenforcer_planning` (clone it next to this repo — it also holds the Beads issue database):
 
-```bash
-uv venv
-uv pip install -e ".[dev]"
-```
+@../gridenforcer_planning/workflow/dev-stage.md
+@../gridenforcer_planning/workflow/uv-setup.md
+@../gridenforcer_planning/workflow/beads.md
+@../gridenforcer_planning/workflow/planning-discipline.md
+@../gridenforcer_planning/workflow/dod.md
 
-`.python-version` pins to 3.12 so `uv venv` picks the right interpreter automatically.
+## Project
 
-## Pre-Plan Baseline Check
+Shared adapter base package consumed by every GridEnforcer integration: `BaseAdapter`, `ControllableAdapter`, `AdapterType`, `DeviceClass`, `ValueType`, `AdapterData`, `DeferrableLoadAdapter`.
 
-**Before starting any new plan or implementation task**, run unit tests and ruff to verify a clean baseline:
+All sibling repos install this package as an editable local override (`[tool.uv.sources]`), so **changes here immediately affect every adapter repo and Core** — run their test suites when touching the base contract.
+
+### Adapter type system
+
+| Adapter | adapter_type | device_class | Key ValueTypes |
+|---------|-------------|--------------|----------------|
+| Grid meter | METER | GRID_METER | GRID_POWER, GRID_IMPORT_POWER, GRID_EXPORT_POWER |
+| Consumption | METER | LOAD_METER | LOAD_POWER |
+| Production | PRODUCTION | SOLAR_INVERTER | POWER |
+| Storage | STORAGE | HOME_BATTERY / EV_CHARGER | SOC, BATTERY_POWER, CAPACITY |
+| Grid price | GRID_PRICE | GENERIC | ENERGY_PRICE, PRICE_FORECAST |
+| Deferrable | DEFERRABLE | GENERIC / HEAT_PUMP | — (uses `to_planning_dict()`) |
+
+`AdapterData.values: dict[ValueType, float | list | None]` — typed values dict.
+`AdapterState.get_value(key)` — typed lookup with attributes fallback.
+
+## Commands
 
 ```bash
 uv run pytest tests/ --tb=no -q
 uv run ruff check src/
+uv run mypy src/
 ```
-
-If there are any failing tests or ruff errors, **stop and inform the user** before proceeding. Do not start new work on top of a broken baseline.
-
-Beads (issue tracking) live in the sibling repo `gridenforcer_planning` — clone it next to this repo and run `bd ready` / `bd create` / etc. from there. Bead IDs use the `ge-` prefix; historical CHANGELOG entries referencing `gridenforcer_core-<id>` map 1:1 to `ge-<id>`.
-
-## Branching
-
-When claiming a bead, create a feature branch off `main` (e.g. `bd-<id>/<short-slug>`) and do all work there. Merge to `main` via PR after field-green. Direct pushes to `main` are blocked by GitHub branch protection.
-
-## Definition of done
-
-A feature is complete when:
-
-1. The specified behavior works correctly across all described scenarios
-2. Edge cases identified in the specification are handled
-3. A corresponding unit test exists and passes
-4. No linting errors are introduced
-5. A oneline summary of the feature is added to CHANGELOG.md
-6. README.md and PRD.md is updated to reflect the changes and user approved the updates
-7. The changes are tested in the running install and explicitly approved by the user before committing and pushing
-8. The associated Beads issue stays open until the user confirms the change works; only then close it
