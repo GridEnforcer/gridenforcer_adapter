@@ -6,8 +6,8 @@ that EMHASS can schedule to run during cheap-price windows.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import logging
-from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 from .base import AdapterData, AdapterStatus, AdapterType, BaseAdapter
@@ -171,7 +171,7 @@ class DeferrableLoadAdapter(BaseAdapter):
         return AdapterData(
             value=value,
             unit=None,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             attributes={
                 "nominal_power_w": self._nominal_power_w,
                 "operating_hours": self._operating_hours,

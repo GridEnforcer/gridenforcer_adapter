@@ -206,9 +206,8 @@ class ControllableAdapter(BaseAdapter):
         if power_kw >= 0:
             # Charging/consumption
             return caps.rated_min_charge_kw <= power_kw <= caps.rated_max_charge_kw
-        else:
-            # Discharging/production
-            if not caps.supports_discharge:
-                return False
-            abs_power = abs(power_kw)
-            return caps.rated_min_discharge_kw <= abs_power <= caps.rated_max_discharge_kw
+        # Discharging/production
+        if not caps.supports_discharge:
+            return False
+        abs_power = abs(power_kw)
+        return caps.rated_min_discharge_kw <= abs_power <= caps.rated_max_discharge_kw

@@ -219,7 +219,7 @@ class BaseAdapter(ABC):
         Override to perform cleanup.
         """
 
-    async def async_set_grid_export_limit_kw(self, limit_kw: float) -> bool:  # noqa: B027
+    async def async_set_grid_export_limit_kw(self, limit_kw: float) -> bool:
         """Set a runtime cap on power exported to the grid (kW).
 
         The cap is plant-level — it gates the inverter's grid-out flow,

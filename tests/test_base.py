@@ -75,12 +75,12 @@ def test_adapter_default_device_class():
             return "Test"
 
         async def async_update(self) -> AdapterData:
-            return AdapterData(
-                value=0, unit=None, timestamp=datetime.now()
-            )
+            return AdapterData(value=0, unit=None, timestamp=datetime.now())
 
     adapter = TestAdapter(
-        hass=None, entry_id="test", config={}  # type: ignore
+        hass=None,
+        entry_id="test",
+        config={},  # type: ignore
     )
     assert adapter.device_class == DeviceClass.GENERIC
 
@@ -144,12 +144,12 @@ def test_adapter_custom_device_class():
             return "EV"
 
         async def async_update(self) -> AdapterData:
-            return AdapterData(
-                value=0, unit=None, timestamp=datetime.now()
-            )
+            return AdapterData(value=0, unit=None, timestamp=datetime.now())
 
     adapter = EVAdapter(
-        hass=None, entry_id="test", config={}  # type: ignore
+        hass=None,
+        entry_id="test",
+        config={},  # type: ignore
     )
     assert adapter.device_class == DeviceClass.EV_CHARGER
 
@@ -349,7 +349,9 @@ def test_adapter_validate_config():
 
     # Valid config
     adapter_valid = TestAdapter(
-        hass=None, entry_id="test", config={"required_key": "value"}  # type: ignore
+        hass=None,
+        entry_id="test",
+        config={"required_key": "value"},  # type: ignore
     )
     assert adapter_valid.validate_config() is True
 
