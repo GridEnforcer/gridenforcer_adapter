@@ -11,6 +11,7 @@ These rules apply to all GridEnforcer repos and are maintained in the sibling re
 @../gridenforcer_planning/workflow/beads.md
 @../gridenforcer_planning/workflow/planning-discipline.md
 @../gridenforcer_planning/workflow/dod.md
+@../gridenforcer_planning/workflow/ha-style.md
 
 ## Project
 
@@ -36,6 +37,7 @@ All sibling repos install this package as an editable local override (`[tool.uv.
 
 ```bash
 uv run pytest tests/ --tb=no -q
-uv run ruff check src/
+uv run ruff format src/ tests/   # HA style: formatter is mandatory
+uv run ruff check src/ tests/    # HA core rule set (see ha-style.md)
 uv run mypy src/
 ```
