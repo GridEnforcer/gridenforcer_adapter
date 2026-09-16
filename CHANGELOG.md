@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.3.0
+
+Gives a near-zero hold an explicit direction, so a caller at a SoC floor can say which side to hold on instead of encoding it as a magnitude that collides with an adapter's own minimum-power constant (gridenforcer_core ge-7yhs).
+
+- Add `hold_side: HoldSide | None` keyword-only argument to `ControllableAdapter.async_set_power()`, and export the new `HoldSide = Literal["charge", "discharge"]` type. A near-zero target is a *hold*, and a hold was direction-less at this interface: the caller passes one signed number, so an adapter that keeps a session alive with a small trickle had to infer the side from its own session history. That inference is wrong at a SoC floor, where the last real command was a discharge but holding on the discharge side drains the pack further. Callers now state the side instead of encoding it as a magnitude — gridenforcer_core previously had to send +0.1 kW purely because that was the smallest value the InfyPower adapter would still route down its charge path, which tied the two repos' constants together (`FLOOR_HOLD_CHARGE_KW == MIN_POWER_KW == 0.1`) and silently disabled that adapter's keep-alive pulse. Default is `None`, which leaves the choice to the adapter and is correct for every device whose hold has no direction. Refs ge-7yhs, ge-cgon.
+
 ## 0.2.0
 
 First tagged release. Pins the protocol contract so downstream repos can depend on a stable tag instead of `main` (gridenforcer_core ge-awz).

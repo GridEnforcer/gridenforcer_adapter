@@ -17,6 +17,9 @@ from .intent import IntentType
 
 VerificationState = Literal["verified", "mismatch", "no_data", "not_applicable"]
 
+# Which direction a near-zero hold is written on. See `async_set_power`.
+HoldSide = Literal["charge", "discharge"]
+
 
 @dataclass
 class PowerCapabilities:
@@ -116,6 +119,7 @@ class ControllableAdapter(BaseAdapter):
         *,
         force: bool = False,
         intent: IntentType | None = None,
+        hold_side: HoldSide | None = None,
     ) -> PowerCommandResult:
         """Set the target power for this device.
 
@@ -136,6 +140,17 @@ class ControllableAdapter(BaseAdapter):
                 target is identical, or expose the intent on a status
                 sensor for downstream automations. Adapters that don't
                 care can ignore it.
+            hold_side: Which direction a near-zero target must be held on.
+                A hold is otherwise direction-less at this interface: the
+                caller passes one signed number, so an adapter that keeps a
+                session alive with a small trickle has to infer the side
+                from its own session history. That inference is wrong at a
+                SoC floor, where the last real command was a discharge but
+                holding on the discharge side drains the pack further
+                (ge-cgon, ge-7yhs). The caller states the side instead of
+                encoding it as a magnitude large enough to imply direction.
+                ``None`` leaves the choice to the adapter, which is the
+                right default for every device whose hold has no direction.
 
         Returns:
             PowerCommandResult indicating success/failure and actual power set
