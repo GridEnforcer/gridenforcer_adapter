@@ -45,7 +45,7 @@ from .controllable import (
 from .deferrable import DeferrableLoadAdapter
 from .intent import BATTERY_DEADBAND_KW, GRID_DEADBAND_KW, IntentType
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __all__ = [
     "BATTERY_DEADBAND_KW",
     "GRID_DEADBAND_KW",
