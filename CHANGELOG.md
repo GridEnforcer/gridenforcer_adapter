@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.4.0
+
+Lets the caller hand a battery adapter the SoC envelope it enforces, so a hybrid inverter left in a native mode stops at the same band (gridenforcer_core ge-o2v6).
+
+- Add `BaseAdapter.async_set_soc_policy(min_soc: float, max_soc: float) -> bool`, a default no-op that returns `False`. gridenforcer_core clamps its own commands to the operator's SoC band, but an inverter in self use or a market mode charges between commands, which is how Utegård's Solax reached 97 % against a 90 % ceiling. An adapter with native SoC limits overrides the method, stores the pair and applies it on its own write path; the docstring pins the contract (fractions 0-1, store only and never raise, sent on change / startup / instance replacement, inactive until the first call). Refs ge-o2v6, ge-avq9.
+
 ## 0.3.0
 
 Gives a near-zero hold an explicit direction, so a caller at a SoC floor can say which side to hold on instead of encoding it as a magnitude that collides with an adapter's own minimum-power constant (gridenforcer_core ge-7yhs).

@@ -244,6 +244,41 @@ class BaseAdapter(ABC):
         """
         return False
 
+    async def async_set_soc_policy(self, min_soc: float, max_soc: float) -> bool:
+        """Receive the SoC envelope the caller enforces on this battery.
+
+        The caller (gridenforcer_core) owns the operator's SoC policy: the
+        effective floor it holds the battery above and the ceiling it stops
+        opportunistic charging at. It clamps its own commands to that band,
+        but a hybrid inverter that is left in a native mode (self use,
+        feed-in priority, an FCR-D market mode) charges and discharges on
+        its own between commands. An adapter whose device has native SoC
+        limits overrides this method and latches them, so the device stops
+        at the same band without the caller in the loop.
+
+        The contract, so every adapter behaves the same:
+
+        - Store the policy and return. Do not write to the device inline and
+          do not raise: the caller awaits this from its update cycle. Apply
+          the stored values on the adapter's own write path, under its own
+          write-rate guard.
+        - The caller sends the pair when it changes, at startup and when the
+          adapter instance is replaced; there is no periodic resend. Until
+          the first call the adapter has no policy and must leave its native
+          limits as they are.
+        - Exemptions that only the adapter can see (an EPS / off-grid state,
+          a live frequency-reserve activation) are the adapter's to apply.
+
+        Args:
+            min_soc: Effective floor as a fraction, 0.0-1.0.
+            max_soc: Ceiling as a fraction, 0.0-1.0.
+
+        Returns:
+            True if the adapter uses the policy, False if it has no native
+            SoC limits to latch it onto.
+        """
+        return False
+
     def validate_config(self) -> bool:
         """Validate adapter configuration.
 

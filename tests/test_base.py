@@ -329,6 +329,27 @@ async def test_async_set_grid_export_limit_kw_default_is_no_op():
     assert await adapter.async_set_grid_export_limit_kw(10.0) is False
 
 
+@pytest.mark.asyncio
+async def test_async_set_soc_policy_default_is_no_op():
+    """BaseAdapter default returns False: an adapter with no native SoC limits
+    tells the caller it does not latch the policy (gridenforcer_core ge-o2v6)."""
+
+    class TestAdapter(BaseAdapter):
+        @property
+        def adapter_type(self) -> AdapterType:
+            return AdapterType.STORAGE
+
+        @property
+        def name(self) -> str:
+            return "Test"
+
+        async def async_update(self) -> AdapterData:
+            return AdapterData(value=0, unit=None, timestamp=datetime.now())
+
+    adapter = TestAdapter(hass=None, entry_id="test", config={})  # type: ignore
+    assert await adapter.async_set_soc_policy(0.1, 0.9) is False
+
+
 def test_adapter_validate_config():
     """Test config validation method."""
 
