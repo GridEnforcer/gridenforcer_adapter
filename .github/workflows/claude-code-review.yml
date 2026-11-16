@@ -5,7 +5,6 @@ on:
     types: [opened, synchronize, ready_for_review, reopened]
     # Code, tests and scripts; docs-only PRs are skipped.
     paths:
-      - "custom_components/**"
       - "src/**"
       - "tests/**"
       - "*.py"
@@ -16,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # Write, so the review can post its findings on the PR.
+      # Write, so the review is posted on the PR.
       pull-requests: write
       issues: read
       id-token: write
@@ -32,8 +31,26 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
-          plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          # A direct prompt instead of the code-review plugin: the plugin's
+          # eligibility step skipped PRs it judged trivial or automated and
+          # posted nothing, so a green check meant nothing (ge-d3v7 follow-up,
+          # 2026-11-16). This always reviews and always posts.
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request. Read the diff (`gh pr diff`) and the
+            files around the changed lines. Look for correctness bugs first:
+            wrong logic, unhandled cases, broken error handling, races,
+            security problems, and changes that do not do what the PR
+            description claims. Then note missing tests for the changed
+            behaviour. Skip style nits that a linter would catch.
+
+            Post inline comments (the inline comment tool) on the specific
+            lines a finding is about. Then post exactly ONE summary comment
+            with `gh pr comment`: a numbered list of findings, each with
+            file:line, what goes wrong and a concrete scenario, or the line
+            "No findings." if there are none. Always post the summary, even
+            for a small PR and even when there are no findings.
           claude_args: |
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
